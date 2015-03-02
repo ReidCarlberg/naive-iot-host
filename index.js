@@ -18,6 +18,8 @@ var app = express();
 
 var sequelize = new Sequelize(dbUrl);
 
+console.log("sequelize");
+
 var permitted = ["73.208.78.180", "127.0.0.1", "192.168.1.250", "192.168.1.23", "192.168.1.92"]
 
 //http://stackoverflow.com/questions/7185074/heroku-nodejs-http-to-https-ssl-forced-redirect/23894573#23894573
@@ -56,6 +58,8 @@ app.get('/', function(request, response) {
 
 app.post('/report', function(request, response) {
 
+	console.log('reporting');
+	
 	var responseStatus = null;
 
 	var newReadings = request.body;
@@ -71,5 +75,13 @@ app.post('/report', function(request, response) {
 	});
 
 	//send response
-	response.sendStatus(responseStatus);
-})
+	response.sendStatus(200);
+});
+
+if (!module.parent) {
+	app.listen(app.get('port'), function() {
+	  console.log("Node app is running at localhost:" + app.get('port'));
+	});
+}
+
+module.exports = app;

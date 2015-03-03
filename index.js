@@ -1,16 +1,17 @@
 /*
-	Naive IoT Host
+	Simplest IoT Host that Might Possibly Work
 	@ReidCarlberg
-	2015-03-02
+	2015-03-03
 */
 
 var express = require('express'),
 	ipfilter = require('ipfilter'),
 	env = process.env.NODE_ENV || 'development',
 	bodyParser = require('body-parser'),
-	Sequelize = require('sequelize');
+	Sequelize = require('sequelize'),
+	Forecast = require('forecast');
 
-var dbUrl = process.env.HEROKU_POSTGRESQL_AQUA_URL || 'postgres://reid.carlberg@127.0.0.1:5432/ormtest1';
+var dbUrl = process.env.HEROKU_POSTGRESQL_AQUA_URL || process.env.LOCAL_DB_URL;
 
 console.log("Selected DB: " + dbUrl);
 
@@ -20,8 +21,8 @@ var sequelize = new Sequelize(dbUrl);
 
 console.log("sequelize");
 
-var permitted = ["73.208.78.180", "127.0.0.1", "192.168.1.250", "192.168.1.23", "192.168.1.92"]
-
+var permitted = process.env.IP_WHITELIST.split(",");
+console.log(permitted);
 //http://stackoverflow.com/questions/7185074/heroku-nodejs-http-to-https-ssl-forced-redirect/23894573#23894573
 var forceSsl = function (req, res, next) {
     if (req.headers['x-forwarded-proto'] !== 'https') {
@@ -30,7 +31,7 @@ var forceSsl = function (req, res, next) {
     return next();
  };
 
-//model
+//model - sequelize will create this table (it doesn't do table mods tho)
 var Reading = sequelize.define('Reading', {
 	deviceName: Sequelize.STRING,
 	rangeStartDate: Sequelize.DATE,
@@ -38,9 +39,24 @@ var Reading = sequelize.define('Reading', {
 	maxBrightness: Sequelize.INTEGER,
 	minBrightness: Sequelize.INTEGER,
 	maxTemperature: Sequelize.DECIMAL(4,2),
-	minTemperature: Sequelize.DECIMAL(4,2)
+	minTemperature: Sequelize.DECIMAL(4,2),
+	weatherSummary : Sequelize.STRING,
+	weatherTemperature: Sequelize.DECIMAL(4,2),
+	weatherWindSpeed: Sequelize.DECIMAL(4,2),
+	weatherWindBearing: Sequelize.INTEGER
 });
 
+//weather -- because of course we want that.
+var forecast = new Forecast({
+  service: 'forecast.io',
+  key: process.env.FORECAST_IO_APIKEY,
+  units: 'celcius', // Only the first letter is parsed 
+  cache: true,      // Cache API requests? 
+  ttl: {            // How long to cache requests. Uses syntax from moment.js: http://momentjs.com/docs/#/durations/creating/ 
+    minutes: 5,
+    seconds: 0
+    }
+});
 
 app.set('port', (process.env.PORT || 5000));
 app.use(express.static(__dirname + '/public'));
@@ -64,15 +80,26 @@ app.post('/report', function(request, response) {
 
 	var newReadings = request.body;
 
-	sequelize.sync().then(function() {
-		var myKeys = Object.keys(newReadings);
-		for (i = 0; i < myKeys.length; i++) {
-			var currentReading = newReadings[myKeys[i]];
-			Reading.create(currentReading);
-		}
-	}).then(function(data) {
-		console.log("done");
+	forecast.get([41.8050309, -87.8743054], function(err, weather) {
+		if(err) return console.dir(err);
+
+		sequelize.sync().then(function() {
+			var myKeys = Object.keys(newReadings);
+			for (i = 0; i < myKeys.length; i++) {
+				var currentReading = newReadings[myKeys[i]];
+				currentReading.weatherSummary = weather.currently.summary;
+				currentReading.weatherTemperature = weather.currently.temperature;
+				currentReading.weatherWindSpeed = weather.currently.windSpeed;
+				currentReading.weatherWindBearing = weather.currently.windBearing;
+				Reading.create(currentReading);
+			}
+		}).then(function(data) {
+			console.log("done");
+		});
+
 	});
+
+
 
 	//send response
 	response.sendStatus(200);

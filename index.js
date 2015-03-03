@@ -72,6 +72,10 @@ app.get('/', function(request, response) {
   response.send('Hello World!');
 });
 
+app.get('/view', function(request, response) {
+	response.redirect('https://dataclips.heroku.com/klmjbiygozuozcfifmnokmozlmex-Example-Sensor-Data');
+})
+
 app.post('/report', function(request, response) {
 
 	console.log('reporting');

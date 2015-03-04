@@ -12,7 +12,6 @@ var express = require('express'),
 	Forecast = require('forecast');
 
 var dbUrl = process.env.HEROKU_POSTGRESQL_AQUA_URL || process.env.LOCAL_DB_URL;
-
 console.log("Selected DB: " + dbUrl);
 
 var app = express();
@@ -59,7 +58,7 @@ var forecast = new Forecast({
 });
 
 app.set('port', (process.env.PORT || 5000));
-app.use(express.static(__dirname + '/public'));
+//app.use(express.static(__dirname + '/public'));
 app.use(ipfilter(permitted, {mode: 'allow'}));
 
 if (env === 'production') {
@@ -77,13 +76,9 @@ app.get('/view', function(request, response) {
 })
 
 app.post('/report', function(request, response) {
-
 	console.log('reporting');
-	
 	var responseStatus = null;
-
 	var newReadings = request.body;
-
 	forecast.get([41.8050309, -87.8743054], function(err, weather) {
 		if(err) return console.dir(err);
 
@@ -102,8 +97,6 @@ app.post('/report', function(request, response) {
 		});
 
 	});
-
-
 
 	//send response
 	response.sendStatus(200);

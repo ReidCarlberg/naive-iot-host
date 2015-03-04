@@ -17,11 +17,11 @@ console.log("Selected DB: " + dbUrl);
 var app = express();
 
 var sequelize = new Sequelize(dbUrl);
-
 console.log("sequelize");
 
 var permitted = process.env.IP_WHITELIST.split(",");
 console.log(permitted);
+
 //http://stackoverflow.com/questions/7185074/heroku-nodejs-http-to-https-ssl-forced-redirect/23894573#23894573
 var forceSsl = function (req, res, next) {
     if (req.headers['x-forwarded-proto'] !== 'https') {
